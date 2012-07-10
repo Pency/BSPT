@@ -1,0 +1,106 @@
+commit 8dec1700e67925f04e38774d7778d803a298c118
+Author: yanpc <yanpc@bcc.ac.cn>
+Date:   Tue Jan 10 14:30:30 2012 +0800
+
+    changed output file and directory
+
+:100755 100755 3bfd25e... 7707b57... M	seq.c
+:100755 100755 0aba57f... aad7064... M	seq.h
+:100755 100755 2eb9ef5... 412d77d... M	trim.c
+
+commit da3b90ec3ae6a5ac56e940de705ec83b6c5d824d
+Author: yanpc <yanpc@bcc.ac.cn>
+Date:   Tue Jan 10 13:07:48 2012 +0800
+
+    removed bugs in quality detection
+
+:100755 100755 3c5a462... 98dd434... M	filter.c
+:100755 100755 08c6aa9... 3bfd25e... M	seq.c
+:100755 100755 3126640... 0aba57f... M	seq.h
+:100755 100755 501b1f1... 8c6c7d2... M	statistics.c
+:100755 100755 13e8845... 2eb9ef5... M	trim.c
+
+commit eb27b15049144d7e95b3afaecc26e0ddf3c79d74
+Author: yanpc <yanpc@bcc.ac.cn>
+Date:   Tue Jan 10 11:02:28 2012 +0800
+
+    checkin git
+
+:000000 100755 0000000... 3c5a462... A	filter.c
+:000000 100755 0000000... e0422f1... A	main.c
+:000000 100755 0000000... 70f9fa0... A	main.h
+:000000 100755 0000000... 08c6aa9... A	seq.c
+:000000 100755 0000000... 3126640... A	seq.h
+:000000 100755 0000000... 1b49610... A	split.c
+:000000 100755 0000000... 501b1f1... A	statistics.c
+:000000 100755 0000000... 13e8845... A	trim.c
+
+------------------------------------------------------------------------
+	yanpc |	Tue Aug 30 10:37:02 CST 2011
+
+* add new options to filter
+* rewrite filter.c
+* rewrite basic read functions in seq.c
+* use new structure in the seq.h
+
+------------------------------------------------------------------------
+	yanpc |	2011年 08月 21日 星期日 17:20:32 CST
+
+* write function checkFile() and remove function checkType()
+* use bitwise to check file type and quality format
+* split the trim() function to file functions
+* add the enum flag in the seq.h
+
+------------------------------------------------------------------------
+	yanpc |	2011年 07月 30日 星期六 13:29:01 CST
+
+* write function checkItem(), readFASTA(), checkType()
+* rewrite the function readFASTQ()
+* fix bugs of trim() and filter() function
+* rewrite the Warning information 
+
+------------------------------------------------------------------------
+	yanpc |	2011年 07月 27日 星期三 17:43:46 CST
+
+* write function split()
+* rewrite the function readFASTQ()
+* fix bugs of trim() and filter() function
+* rewrite the Usage information 
+
+------------------------------------------------------------------------
+	yanpc |	2011年 07月 25日 星期一 10:09:03 CST
+
+* split source code to serveral files accoding function
+* rewrite the function stats()
+* rewrite trim() and filter() function
+* rewrite the Usage information 
+
+------------------------------------------------------------------------
+	yanpc |	2011年 07月 18日 星期一 13:50:16 CST
+
+* add command options
+* rewrite the Usage
+* add functions: stats(), initData();
+* rewrite trim() function
+* rewrite the main code, use the MAQ like command line 
+
+------------------------------------------------------------------------
+	yanpc |	2011年 07月 16日 星期六 11:12:45 CST
+
+* add functions: initOptions() and getOptions()
+* add functions: convert()
+
+------------------------------------------------------------------------
+	yanpc |	2011年 07月 15日 星期五 16:05:01 CST
+
+* add PE trim module
+* add command line options
+* add output to files
+
+------------------------------------------------------------------------
+	yanpc |	2011-07-14 16:39:00
+
+* NGS data preprocess tools
+* initial codes
+
+------------------------------------------------------------------------
