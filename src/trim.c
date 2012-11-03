@@ -18,7 +18,7 @@ typedef struct {
 
 void trim_usage(){
 	printf("Program:  trim function of NGS data preprocess toolkits\n");
-	printf("Version:  %s by Yanpc\n\n","0.1.3");
+	printf("Version:  %s by Yanpc\n\n", VERSION);
 	printf("Usage:    pt trim [options]\n\n");
 	printf("Options:  -l\tmin length of read after trimming\n");
 	printf("\t  -q\tquality threshold\n\t  -1\tsingle end or one end of pair-end\n");

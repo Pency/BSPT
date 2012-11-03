@@ -113,6 +113,8 @@ int stats_fastq(char* file, int base, FILE* output){
 	int baseQual;
 	int nuc_idx=0;
 	int length[MAX_READ_LENGTH];
+	for(i=0;i<MAX_READ_LENGTH;i++)
+		length[i]=0;
 
 	char nucleotide_index[255];
 	nucleotide_index['A'] = A ;
@@ -135,7 +137,7 @@ int stats_fastq(char* file, int base, FILE* output){
 	gzFile zfp = gzopen_report(file,"r");
 
 	while(read_fastq(zfp, &item, index++) > 0){
-		int tmp_gc = (int) (stats_gc_content(&item) - 1.0)/20.0;
+		int tmp_gc = (int) (stats_gc_content(&item) /20.0);
 		seq_stats.gc_content[tmp_gc]++;
 		seq_stats.total_reads++;
 		for(i=0; i<item.length; i++){
@@ -150,8 +152,17 @@ int stats_fastq(char* file, int base, FILE* output){
 			seq_stats.qual_hist[baseQual]++;
 		}
 		seq_stats.total_length += (long int) item.length;
-		update_count(seq_stats.length_hist, item.length, 1);
+		length[item.length]++;
 	}
+
+	for(i=0;i<MAX_READ_LENGTH;i++){
+		if(length[i] == 0)
+			continue;
+		update_count(seq_stats.length_hist, i, length[i]);
+		seq_stats.max_length = MAX(seq_stats.max_length, i);
+		seq_stats.min_length = MIN(seq_stats.min_length, i);
+	}
+
 	seq_stats.mean_length = (float) (seq_stats.total_length/seq_stats.total_reads);
 
 	print_stats(output, &seq_stats);

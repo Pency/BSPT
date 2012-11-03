@@ -20,7 +20,7 @@ typedef struct {
 void filter_usage(){
 	printf("\n");
 	printf("Program:  filter function of NGS data preprocess toolkits\n");
-	printf("Version:  %s by Yanpc\n\n","0.1.3");
+	printf("Version:  %s by Yanpc\n\n", VERSION);
 	printf("Usage:    pt filter [options]\n\n");
 	printf("Options:  -q\tquality threshold [15]\n");
 	printf("\t  -p\tmin percentage of base quality above -q, -q forced [0.3]\n\t  -m\tmean quality of read (supoior to -q and -p) [20]\n");
@@ -38,11 +38,11 @@ FLT_OPTS getFilterOptions(int argc, char* argv[]){
 		exit(1);
 	}
 	FLT_OPTS mopts;
-	mopts.qualityCutoff = 15;
+	mopts.qualityCutoff = 0;
 	mopts.lengthCutoff = 0;
-	mopts.nNumber = 15;
+	mopts.nNumber = 99;
 	mopts.meanQuality = 20;
-	mopts.percent = 30;
+	mopts.percent = 0;
 	strcpy(mopts.r1, "none");
 	strcpy(mopts.r2, "none");
 	strcpy(mopts.output, "out");
@@ -81,41 +81,28 @@ FLT_OPTS getFilterOptions(int argc, char* argv[]){
 	return mopts;
 }
 
-int filter_by_percent(SEQ_QUAL *item, int threshold, int percent){
-	int left=0;
+int filter_all(SEQ_QUAL *item, FLT_OPTS *flt){
+	int left=1;
 	int i=0;
-	int arg=0;
-	for(i=0;i<item->length;i++)
-		if(threshold >= (item->qual[i] - BASE_SOLEXA))
-			arg++;
-	if((arg/item->length) >= percent) left=1;
-	return left;
-}
-
-int filter_by_mean(SEQ_QUAL *item, int mean){
-	int left=0;
-	int i=0;
-	int arg=0;
-	for(i=0;i<item->length;i++)
-		arg += item->qual[i];
-	if((arg/item->length) >= mean) left=1;
-	return left;
-}
-
-int filter_by_length(SEQ_QUAL *item, int length){
-	int left=0;
-	if(item->length >= length) left=1;
-	return left;
-}
-
-int filter_by_number(SEQ_QUAL *item, int number){
-	int left=0;
-	int i=0;
-	int arg=0;
-	for(i=0;i<item->length;i++)
+	int argH=0;
+	int argQ=0;
+	int argN=0;
+	//filter by length
+	if(item->length < flt->lengthCutoff) return -1;
+	for(i=0;i<item->length;i++){
+		if(flt->qualityCutoff <= item->qual[i])
+			argH++;
+		argQ += item->qual[i];
 		if(item->seq[i] == 'N' || item->seq[i] == 'n')
-			arg++;
-	if(arg < number) left=1;
+			argN++;
+	}
+
+	//filter by N number
+	if(argN > flt->nNumber) return -1;
+	//filter by mean quality
+	if((argQ/item->length) < flt->meanQuality) return -1;
+	//filter by high quality percent
+	if((argH/item->length) < flt->percent) return -1;
 	return left;
 }
 
@@ -126,43 +113,34 @@ int filter_pe_fastq(FLT_OPTS *opts){
 	int stat_paired = 0;
 	int index=1;
 	char fn[128];
+	char outfile[128];
 	SEQ_QUAL item1=init_read();
 	SEQ_QUAL item2=init_read();
 
 	gzFile fp1=gzopen_report(opts->r1,"r");
+	if(!fp1)	return -1;
 	gzFile fp2=gzopen_report(opts->r2,"r");
-	sprintf(fn,"%s/%s.flt",opts->output,opts->r1);
+	if(!fp2)	return -1;
+	file_name(outfile,opts->r1);
+	sprintf(fn,"%s/%s.flt",opts->output,outfile);
 	FILE *fo1=fopen_report(fn,"w+");
-	sprintf(fn,"%s/%s.flt",opts->output,opts->r2);
+	if(!fo1)	return -1;
+	file_name(outfile,opts->r2);
+	sprintf(fn,"%s/%s.flt",opts->output,outfile);
 	FILE *fo2=fopen_report(fn,"w+");
-	sprintf(fn,"%s/%s.flt.s",opts->output,opts->r1);
+	if(!fo2)	return -1;
+	sprintf(fn,"%s/%s.flt.s",opts->output,outfile);
 	FILE *fos=fopen_report(fn,"w+");
+	if(!fos)	return -1;
 
 	while(read_fastq(fp1,&item1,index) >= 0 && read_fastq(fp2,&item2,index) >= 0)
 	{
-		if(opts->meanQuality && (left1 + left2 ) >= 1)
-		{
-			left1=filter_by_mean(&item1, opts->meanQuality);
-			left2=filter_by_mean(&item2, opts->meanQuality);
-		}else if(opts->percent && (left1 + left2 ) >= 1)
-		{
-			left1=filter_by_percent(&item1, opts->qualityCutoff, opts->percent);
-			left2=filter_by_percent(&item2, opts->qualityCutoff, opts->percent);
-		}else if(opts->lengthCutoff && (left1 + left2 ) >= 1)
-		{
-			left1=filter_by_length(&item1, opts->lengthCutoff);
-			left2=filter_by_length(&item2, opts->lengthCutoff);
-		}else if(opts->nNumber && (left1 + left2 ) >= 1)
-		{
-			left1=filter_by_number(&item1, opts->nNumber);
-			left2=filter_by_number(&item2, opts->nNumber);
-		}
+		left1=filter_all(&item1, opts);
+		left2=filter_all(&item2, opts);
 
 		if(left1 == 1 && left2 == 1){
 			output_fastq(fo1, &item1);
 			output_fastq(fo2, &item2);
-			stat_single1++;
-			stat_single2++;
 			stat_paired++;
 		}else{
 			if(left1 == 1){
@@ -174,6 +152,7 @@ int filter_pe_fastq(FLT_OPTS *opts){
 				stat_single2++;
 			}
 		}
+		index++;
 	}
 
 	printf("Totally %d reads were processed\n",(index-1)*2);
@@ -201,37 +180,28 @@ int filter_pe_fastq_bz2(FLT_OPTS *opts){
 	int stat_paired = 0;
 	int index=1;
 	char fn[128];
+	char outfile[128];
 	SEQ_QUAL item1=init_read();
 	SEQ_QUAL item2=init_read();
 
 	BZFILE *fp1=bzopen_report(opts->r1,"r");
 	BZFILE *fp2=bzopen_report(opts->r2,"r");
-	sprintf(fn,"%s/%s.flt",opts->output,opts->r1);
+	file_name(outfile,opt->r1);
+	sprintf(fn,"%s/%s.flt",opts->output,outfile);
 	FILE *fo1=fopen_report(fn,"w+");
-	sprintf(fn,"%s/%s.flt",opts->output,opts->r2);
+	if(!fo1)	return -1;
+	file_name(outfile,opts->r2);
+	sprintf(fn,"%s/%s.flt",opts->output,outfile);
 	FILE *fo2=fopen_report(fn,"w+");
-	sprintf(fn,"%s/%s.flt.s",opts->output,opts->r1);
+	if(!fo2)	return -1;
+	sprintf(fn,"%s/%s.flt.s",opts->output,outfile);
 	FILE *fos=fopen_report(fn,"w+");
+	if(!fos)	return -1;
 
 	while(read_fastq_bz2(fp1,&item1,index) >= 0 && read_fastq_bz2(fp2,&item2,index) >= 0)
 	{
-		if(opts->meanQuality && (left1 + left2 ) >= 1)
-		{
-			left1=filter_by_mean(&item1, opts->meanQuality);
-			left2=filter_by_mean(&item2, opts->meanQuality);
-		}else if(opts->percent && (left1 + left2 ) >= 1)
-		{
-			left1=filter_by_percent(&item1, opts->qualityCutoff, opts->percent);
-			left2=filter_by_percent(&item2, opts->qualityCutoff, opts->percent);
-		}else if(opts->lengthCutoff && (left1 + left2 ) >= 1)
-		{
-			left1=filter_by_length(&item1, opts->lengthCutoff);
-			left2=filter_by_length(&item2, opts->lengthCutoff);
-		}else if(opts->nNumber && (left1 + left2 ) >= 1)
-		{
-			left1=filter_by_number(&item1, opts->nNumber);
-			left2=filter_by_number(&item2, opts->nNumber);
-		}
+		left1=filter_all(&item1, opts);
+		left2=filter_all(&item2, opts);
 
 		if(left1 == 1 && left2 == 1){
 			output_fastq(fo1, &item1);
@@ -249,6 +219,7 @@ int filter_pe_fastq_bz2(FLT_OPTS *opts){
 				stat_single2++;
 			}
 		}
+		index++;
 	}
 
 	printf("Totally %d reads were processed\n",(index-1)*2);
@@ -280,17 +251,7 @@ int filter_se_fastq(FLT_OPTS *opts){
 
 	while(read_fastq(fp,&item,index++) > 0){
 		check_read(&item,2);
-		if(opts->meanQuality && left != 1)
-			left=filter_by_mean(&item, opts->meanQuality);
-
-		if(opts->percent && left != 1)
-			left=filter_by_percent(&item, opts->qualityCutoff, opts->percent);
-
-		if(opts->lengthCutoff && left != 1)
-			left=filter_by_length(&item, opts->lengthCutoff);
-
-		if(opts->nNumber && left != 1)
-			left=filter_by_number(&item, opts->nNumber);
+		left=filter_all(&item, opts);
 
 		if(left == 1){
 			output_fastq(fo, &item);
@@ -319,17 +280,7 @@ int filter_se_fastq_bz2(FLT_OPTS *opts){
 
 	while(read_fastq(fp,&item,index++) > 0){
 		check_read(&item,2);
-		if(opts->meanQuality && left != 1)
-			left=filter_by_mean(&item, opts->meanQuality);
-
-		if(opts->percent && left != 1)
-			left=filter_by_percent(&item, opts->qualityCutoff, opts->percent);
-
-		if(opts->lengthCutoff && left != 1)
-			left=filter_by_length(&item, opts->lengthCutoff);
-
-		if(opts->nNumber && left != 1)
-			left=filter_by_number(&item, opts->nNumber);
+		left=filter_all(&item, opts);
 
 		if(left == 1){
 			output_fastq(fo, &item);
@@ -365,6 +316,7 @@ int filter_main(int argc, char* argv[]){
 		return 1;
 
 	mopts.qualityCutoff += flag_a & FILE_PHRED33 ? BASE_SANGER : BASE_SOLEXA;
+	mopts.meanQuality += flag_a & FILE_PHRED33 ? BASE_SANGER : BASE_SOLEXA;
 	if(mkdir_report(mopts.output) != 0)	return 1;
 
 	if(strcmp(mopts.r2,"none") != 0){
